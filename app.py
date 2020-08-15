@@ -7,6 +7,7 @@ from sqlalchemy import create_engine, func
 
 from flask import Flask, jsonify
 import datetime as dt
+from datetime import date
 
 engine = create_engine("sqlite:///Resources/hawaii.sqlite")
 Base = automap_base()
@@ -72,31 +73,29 @@ def tobs():
 
 
 
-@app.route(f"/api/v1.0/<start>")
-def start(start):
-    start = dt.datetime(start)
+@app.route("/api/v1.0/<start>")
+def start_date(start):
+    begin_date = date.fromisoformat(f'{start}')
     session = Session(engine)
-    results = session.query(func.min(measurement.tobs), func.max(measurement.tobs), func.avg(measurement.tobs)).\
-    filter(measurement.date>=start)
-    filter(measurement.station=='USC00519281').all()
+    results = session.query(func.min(measurement.tobs), func.max(measurement.tobs), func.avg(measurement.tobs)).filter(measurement.date>=begin_date).filter(measurement.station=='USC00519281').all()
     session.close()
 
     start = list(np.ravel(results))
-    return jsonify(tobs)
+    return jsonify(start)
 
 @app.route("/api/v1.0/<start>/<end>")
-def end(start, end):
-    start = datetime.strptime(start, "%Y-%m-%d").date()
-    end = datetime.strptime(end, "%Y-%m-%d").date()
+def end_date(start, end):
+    begin_date = date.fromisoformat(f'{start}')
+    end_date = date.fromisoformat(f'{end}')
     session = Session(engine)
     results = session.query(func.min(measurement.tobs), func.max(measurement.tobs), func.avg(measurement.tobs)).\
-    filter(measurement.date>=start).\
-    filter(measurement.date<=end)
+    filter(measurement.date>=begin_date).\
+    filter(measurement.date<=end_date).\
     filter(measurement.station=='USC00519281').all()
     session.close()
 
-    tobs = list(np.ravel(results))
-    return jsonify(tobs)
+    end = list(np.ravel(results))
+    return jsonify(end)
 
 if __name__ == '__main__':
     app.run(debug=True)
