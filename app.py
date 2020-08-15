@@ -24,16 +24,13 @@ app = Flask(__name__)
 @app.route("/")
 def home():
     return (
-        f"Available Routes:"
-        f""
-        f"/api/v1.0/precipitation"
-        f''
-        f'/api/v1.0/stations'
-        f''
-        f'/api/v1.0/tobs'
-        f''
-        f'/api/v1.0/<start> and /api/v1.0/<start>/<end>'
-        f'<start>= start date, <end = end date>'
+        f"Available Routes:<br/>"
+        f"/api/v1.0/precipitation<br/>"
+        f'/api/v1.0/stations<br/>'
+        f'/api/v1.0/tobs<br/>'
+        f'/api/v1.0/start<br/>'
+        f'/api/v1.0/start/end<br/>'
+    
     )
 
 
@@ -50,13 +47,6 @@ def precipation():
     return jsonify(prcp)
 
 
-# Precipitation
-
-# Convert the query results to a dictionary using date as the key and prcp as the value.
-
-# Return the JSON representation of your dictionary.
-
-
 @app.route("/api/v1.0/stations")
 def stations():
     session = Session(engine)
@@ -66,8 +56,6 @@ def stations():
     stations = list(np.ravel(results))
     return jsonify(stations)
 
-# /api/v1.0/stations
-# Return a JSON list of stations from the dataset.
 
 @app.route("/api/v1.0/tobs")
 def tobs():
@@ -82,39 +70,33 @@ def tobs():
     tobs = list(np.ravel(results))
     return jsonify(tobs)
 
-# /api/v1.0/tobs
-# Query the dates and temperature observations of the most active station for the last year of data.
-# Return a JSON list of temperature observations (TOBS) for the previous year.
 
 
-@app.route("/api/v1.0/<start>")
-def start():
+@app.route(f"/api/v1.0/<start>")
+def start(start):
+    start = dt.datetime(start)
     session = Session(engine)
-    results = session.query(measurement.station, func.count(measurement.prcp)).filter().all()
+    results = session.query(func.min(measurement.tobs), func.max(measurement.tobs), func.avg(measurement.tobs)).\
+    filter(measurement.date>=start)
+    filter(measurement.station=='USC00519281').all()
     session.close()
 
     start = list(np.ravel(results))
     return jsonify(tobs)
 
 @app.route("/api/v1.0/<start>/<end>")
-def tobs():
+def end(start, end):
+    start = datetime.strptime(start, "%Y-%m-%d").date()
+    end = datetime.strptime(end, "%Y-%m-%d").date()
     session = Session(engine)
-    results = session.query(measurement.station, func.count(measurement.prcp)).group_by(measurement.station).all()
+    results = session.query(func.min(measurement.tobs), func.max(measurement.tobs), func.avg(measurement.tobs)).\
+    filter(measurement.date>=start).\
+    filter(measurement.date<=end)
+    filter(measurement.station=='USC00519281').all()
     session.close()
 
     tobs = list(np.ravel(results))
     return jsonify(tobs)
-
-# /api/v1.0/<start> and /api/v1.0/<start>/<end>
-
-
-# Return a JSON list of the minimum temperature, the average temperature, and the max temperature for a given start or start-end range.
-
-
-# When given the start only, calculate TMIN, TAVG, and TMAX for all dates greater than and equal to the start date.
-
-
-# When given the start and the end date, calculate the TMIN, TAVG, and TMAX for dates between the start and end date inclusive.
 
 if __name__ == '__main__':
     app.run(debug=True)
